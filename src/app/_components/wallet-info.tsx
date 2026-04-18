@@ -1,10 +1,10 @@
 "use client";
 
 import { useWallet } from "@/hooks/useWallet";
-import { formatAddress, formatBalance } from "@/lib/ether";
-import { ethers } from "ethers";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ethers } from "ethers"; // Add this import
+import { formatAddress, formatBalance } from "@/lib/ether";
 
 export default function WalletInfo() {
   const { account, balance, isConnected } = useWallet();

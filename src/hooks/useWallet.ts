@@ -12,13 +12,45 @@ export const useWallet = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
 
+  // Check if already connected on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts",
+          });
+          if (accounts.length > 0) {
+            const address = accounts[0];
+            const providerInstance = new ethers.BrowserProvider(
+              window.ethereum,
+            );
+            const balanceWei = await providerInstance.getBalance(address);
+            const network = await providerInstance.getNetwork();
+
+            setAccount(address);
+            setBalance(balanceWei);
+            setChainId(Number(network.chainId));
+            setProvider(providerInstance);
+            setIsConnected(true);
+
+            console.log("Auto-connected to:", address);
+          }
+        } catch (error) {
+          console.error("Failed to check connection:", error);
+        }
+      }
+    };
+
+    checkConnection();
+  }, []);
+
   const checkNetwork = useCallback(
     async (providerInstance: ethers.BrowserProvider) => {
       const network = await providerInstance.getNetwork();
       const chainIdNum = Number(network.chainId);
       setChainId(chainIdNum);
 
-      // Sepolia chainId is 11155111
       if (chainIdNum !== 11155111) {
         toast.warning("Please switch to Sepolia testnet", {
           description: "This app works best on Ethereum Sepolia network",
@@ -28,11 +60,10 @@ export const useWallet = () => {
               try {
                 await window.ethereum.request({
                   method: "wallet_switchEthereumChain",
-                  params: [{ chainId: "0xaa36a7" }], // 11155111 in hex
+                  params: [{ chainId: "0xaa36a7" }],
                 });
               } catch (error: any) {
                 if (error.code === 4902) {
-                  // Add Sepolia network if it doesn't exist
                   await window.ethereum.request({
                     method: "wallet_addEthereumChain",
                     params: [
@@ -71,7 +102,6 @@ export const useWallet = () => {
         return balanceWei;
       } catch (error) {
         console.error("Failed to fetch balance:", error);
-        toast.error("Failed to fetch balance");
         return null;
       }
     },
@@ -90,14 +120,11 @@ export const useWallet = () => {
     setIsConnecting(true);
 
     try {
-      // Request accounts using the ethereum provider directly (not BrowserProvider.send)
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
 
       const address = accounts[0];
-
-      // Now create the BrowserProvider after we have permission
       const providerInstance = new ethers.BrowserProvider(window.ethereum);
 
       setProvider(providerInstance);
@@ -113,7 +140,6 @@ export const useWallet = () => {
     } catch (error: any) {
       console.error("Connection error:", error);
 
-      // Handle user rejection
       if (error.code === 4001) {
         toast.error("Connection rejected", {
           description: "Please approve the connection request in MetaMask",
@@ -166,8 +192,9 @@ export const useWallet = () => {
           duration: 5000,
         });
 
-        // Refresh balance after transaction
-        await fetchBalance(account, provider);
+        if (provider) {
+          await fetchBalance(account, provider);
+        }
 
         return receipt;
       } catch (error: any) {
@@ -184,26 +211,28 @@ export const useWallet = () => {
   // Listen for account changes
   useEffect(() => {
     if (typeof window !== "undefined" && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
+      const handleAccountsChanged = async (accounts: string[]) => {
+        console.log("Accounts changed:", accounts);
         if (accounts.length === 0) {
           disconnectWallet();
         } else if (accounts[0] !== account) {
-          setAccount(accounts[0]);
+          const newAddress = accounts[0];
+          setAccount(newAddress);
           if (provider) {
-            fetchBalance(accounts[0], provider);
+            await fetchBalance(newAddress, provider);
           } else {
-            // Recreate provider if needed
             const newProvider = new ethers.BrowserProvider(window.ethereum);
             setProvider(newProvider);
-            fetchBalance(accounts[0], newProvider);
+            await fetchBalance(newAddress, newProvider);
           }
           toast.info("Account changed", {
-            description: `Switched to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`,
+            description: `Switched to ${newAddress.slice(0, 6)}...${newAddress.slice(-4)}`,
           });
         }
       };
 
       const handleChainChanged = () => {
+        console.log("Chain changed, reloading...");
         window.location.reload();
       };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 
 // Dynamically import components that use window.ethereum
 const WalletConnect = dynamic(() => import("./_components/wallet-connect"), {
@@ -24,7 +25,6 @@ const TransactionHistory = dynamic(
 export default function Home() {
   return (
     <main className="min-h-screen">
-      {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-r from-purple-600/20 to-blue-600/20 blur-3xl"></div>
 
@@ -33,7 +33,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-12">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Simple Wallet Dashboard
+                Chiomsyn Wallet Dashboard
               </h1>
               <p className="text-gray-400 mt-2">
                 Your Web3 wallet interface for Sepolia Testnet
@@ -41,26 +41,55 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4">
-              <NetworkStatus />
-              <WalletConnect />
+              <Suspense
+                fallback={
+                  <div className="h-10 w-32 bg-gray-800 animate-pulse rounded-lg"></div>
+                }
+              >
+                <NetworkStatus />
+              </Suspense>
+              <Suspense
+                fallback={
+                  <div className="h-12 w-32 bg-gray-800 animate-pulse rounded-xl"></div>
+                }
+              >
+                <WalletConnect />
+              </Suspense>
             </div>
           </div>
 
           {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <WalletInfo />
-            <SendTransaction />
+            <Suspense
+              fallback={
+                <div className="h-96 bg-gray-800/50 animate-pulse rounded-2xl"></div>
+              }
+            >
+              <WalletInfo />
+            </Suspense>
+            <Suspense
+              fallback={
+                <div className="h-96 bg-gray-800/50 animate-pulse rounded-2xl"></div>
+              }
+            >
+              <SendTransaction />
+            </Suspense>
           </div>
 
           {/* Transaction History */}
-          <TransactionHistory />
+          <Suspense
+            fallback={
+              <div className="h-64 bg-gray-800/50 animate-pulse rounded-2xl"></div>
+            }
+          >
+            <TransactionHistory />
+          </Suspense>
 
           {/* Footer Note */}
           <div className="mt-12 text-center text-sm text-gray-500">
-            <p>🔧 Built with Next.js, Tailwind CSS, and ethers.js</p>
+            <p>Built with Next.js, Tailwind CSS, and ethers.js</p>
             <p className="mt-1">
-              📡 Connected to Ethereum Sepolia Testnet — Get test ETH from a
-              faucet
+              Connected to Ethereum Sepolia Testnet — Get test ETH from a faucet
             </p>
           </div>
         </div>
